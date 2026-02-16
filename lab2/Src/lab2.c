@@ -120,9 +120,9 @@ void HAL_GPIO_Configure_Rising_Edge_PA0(void) {
   NVIC_EnableIRQ(EXTI0_1_IRQn);
 
   // For second checkoff, comment out 2 and 3, uncomment 1, and run it. Then Reverse it to show the different operations with different priorities.
-  //NVIC_SetPriority(EXTI0_1_IRQn, 1);
-  NVIC_SetPriority(SysTick_IRQn, 2);  // SysTick = medium
-  NVIC_SetPriority(EXTI0_1_IRQn, 3);  // EXTI = low
+  NVIC_SetPriority(EXTI0_1_IRQn, 1);
+  // NVIC_SetPriority(SysTick_IRQn, 2);  // SysTick = medium
+  // NVIC_SetPriority(EXTI0_1_IRQn, 3);  // EXTI = low
 }
 
 void EXTI0_1_IRQHandler() {

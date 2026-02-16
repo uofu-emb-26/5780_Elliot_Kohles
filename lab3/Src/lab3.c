@@ -14,6 +14,23 @@ int main(void)
   /* Configure the system clock */
   SystemClock_Config();
 
+  RCC->AHBENR |= RCC_AHBENR_GPIOCEN; // Enable GPIOC clock
+  GPIOC->MODER &= ~((3 << (8 * 2)) | (3 << (9 * 2))); //Clear bits PC8(orange), and PC9(green).
+  GPIOC->MODER |= ((1 << (8 * 2)) | (1 << (9 * 2))); // Set bits to 01 (output mode)
+  GPIOC->ODR |= (1 << 8); // Set PC8(orange) high (initial state)
+  GPIOC->ODR &= ~(1 << 9); // Set PC9(green) low (initial state)
+
+  // Enable TIM2
+  RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
+
+  TIM2->PSC = 7999; // Set prescaler to 7999
+  TIM2->ARR = 250;  // Set auto-reload value to 250
+  TIM2->DIER |= TIM_DIER_UIE;
+
+  // Enable TIM2 interrupt
+  NVIC_EnableIRQ(TIM2_IRQn);
+  TIM2->CR1 |= TIM_CR1_CEN; // Start the timer
+
   while (1)
   {
  
@@ -66,6 +83,14 @@ void Error_Handler(void)
   __disable_irq();
   while (1)
   {
+  }
+}
+
+void TIM2_IRQHandler() {
+  if(TIM2->SR & TIM_SR_UIF) {
+    TIM2->SR &= ~TIM_SR_UIF; // Clear the update interrupt flag
+    GPIOC->ODR ^= (1 << 8); // Toggle PC8(green)
+    GPIOC->ODR ^= (1 << 9); // Toggle PC9(blue)
   }
 }
 
