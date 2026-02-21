@@ -6,6 +6,9 @@ extern "C" {
 #endif
 
 void Error_Handler(void);
+void TIM3_PWM_Init(void);
+void LED_GPIO_Init(void);
+void TIM2_IRQHandler(void);
 
 #ifdef __cplusplus
 }

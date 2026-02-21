@@ -1,6 +1,5 @@
 #include "main.h"
 #include "stm32f0xx_hal.h"
-
 void SystemClock_Config(void);
 
 /**
@@ -13,62 +12,17 @@ int main(void)
   HAL_Init();
   /* Configure the system clock */
   SystemClock_Config();
-
-  // Exercise 3.1: Using the Timer Peripheral to Generate Periodic Interrupts
-  RCC->AHBENR |= RCC_AHBENR_GPIOCEN; // Enable GPIOC clock
-  GPIOC->MODER &= ~((3 << (8 * 2)) | (3 << (9 * 2))); //Clear bits PC8(orange), and PC9(green).
-  GPIOC->MODER |= ((1 << (8 * 2)) | (1 << (9 * 2))); // Set bits to 01 (output mode)
-  GPIOC->ODR |= (1 << 8); // Set PC8(orange) high (initial state)
-  GPIOC->ODR &= ~(1 << 9); // Set PC9(green) low (initial state)
-
-  // // Enable TIM2
-  // RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
-
-  // TIM2->PSC = 7999; // Set prescaler to 7999
-  // TIM2->ARR = 250;  // Set auto-reload value to 250
-  // TIM2->DIER |= TIM_DIER_UIE;
-
-  // // Enable TIM2 interrupt
-  // NVIC_EnableIRQ(TIM2_IRQn);
-  // TIM2->CR1 |= TIM_CR1_CEN; // Start the timer
-
-  // Exercise 3.2: Configure Timer Channels to PWM Mode
-  // For this part, we will be using channel 1 and channel 2 of TIM2.
-  // Target frequency = 800 Hz, clock frequency = 8 MHz.
-  // Using the formula f = clock / (PSC + 1) / (ARR + 1), we can calculate the values for PSC and ARR.
-  // PSC = 79, ARR = 125
-  TIM3->PSC = 79; // Set prescaler to 79
-  TIM3->ARR = 125; // Set auto-reload value to 125
-  // CCR1 = 25, CCR2 = 25 for 20% duty cycle
-  TIM3->CCR1 = 25; // Set capture/compare register 1 to 25
-  TIM3->CCR2 = 25; // Set capture/compare register 2 to 25
-
-  // Set channel 1 to PWM Mode 2, active low
-  TIM3->CCMR1 &= ~TIM_CCMR1_OC1M; // Clear output compare mode bits for channel 1
-  TIM3->CCMR1 |= (6 << TIM_CCMR1_OC1M_Pos); // Set output compare mode to PWM Mode
-  TIM3->CCER |= TIM_CCER_CC1E; // Enable output for channel 1
-
-  // Set channel 2 to PWM Mode 1, active high
-  TIM3->CCMR1 &= ~TIM_CCMR1_OC2M; // Clear output compare mode bits for channel 2
-  TIM3->CCMR1 |= (5 << TIM_CCMR1_OC2M_Pos); // Set output compare mode to PWM Mode
-  TIM3->CCER |= TIM_CCER_CC2E; // Enable output for channel 2
-
-  // Enable preload for CCR1 and CCR2
-  TIM3->CCMR1 |= TIM_CCMR1_OC1PE; // Enable preload for channel 1
-  TIM3->CCMR1 |= TIM_CCMR1_OC2PE; // Enable preload for channel 2
-  TIM3->CR1 |= TIM_CR1_ARPE; // Enable auto-reload preload
-
-  // Enable outputs
-  TIM3->CCER |= TIM_CCER_CC1E; // Enable output for channel 1
-  TIM3->CCER |= TIM_CCER_CC2E; // Enable output for channel 2
-  TIM3->CR1 |= TIM_CR1_CEN; // Start the timer
-
-  // Exercise 3.3: configuring pin alternate functions
-  
+  TIM3_PWM_Init();
+  LED_GPIO_Init();
 
   while (1)
   {
- 
+    for (int i = 0; i <= 9999; i += 100)
+    {
+    TIM3->CCR1 = i;
+    TIM3->CCR2 = 9999 - i;
+    for (volatile int d = 0; d < 5000; d++);
+    }
   }
   return -1;
 }
@@ -127,6 +81,59 @@ void TIM2_IRQHandler() {
     GPIOC->ODR ^= (1 << 8); // Toggle PC8(green)
     GPIOC->ODR ^= (1 << 9); // Toggle PC9(blue)
   }
+}
+
+void LED_GPIO_Init(void)
+{
+    RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
+
+    // PC8 and PC9 alternate function
+    GPIOC->MODER &= ~((3 << (6*2)) | (3 << (7*2)));
+    GPIOC->MODER |=  ((2 << (6*2)) | (2 << (7*2)));
+
+    // AF1 = TIM3
+    // PC6 - TIM3 Channel 1
+    // PC7 - TIM3 Channel 2
+    GPIOC->AFR[1] &= ~((0xF << (6*4)) | (0xF << (7*4)));
+    GPIOC->AFR[1] |=  ((1 << (6*4)) | (1 << (7*4)));
+}
+
+void TIM3_PWM_Init(void)
+{
+    RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
+
+
+    TIM3->PSC = 0;
+    TIM3->ARR = 9999;
+
+    TIM3->CR1 |= TIM_CR1_ARPE; // Auto-reload preload enable
+    TIM3->EGR |= TIM_EGR_UG; // Generate an update event to load the prescaler value immediately
+
+    // CCMR1: Capture/Compare Mode Register 1
+    // CC1S[1:0] = 00 (output)
+    // CC2S[9:8] = 00 (output)
+    // OC1M[6:4] = 111 (PWM mode 2)
+    // OC2M[14:12] = 110 (PWM mode 1)
+    // OC1PE[3]
+    // OC2PE[11]
+
+
+    TIM3->CCMR1 &= ~(3 << 0); // Set CC1S to output
+    TIM3->CCMR1 &= ~(3 << 8); // Set CC2S to output
+    TIM3->CCMR1 |= (7 << 4); // 3.2 Part c: Set OC1M to PWM mode 2
+
+    // 3.2 Part d: Set OC2M to PWM mode 1
+    TIM3->CCMR1 &= ~(7 << 12); // Clear OC2M bits
+    TIM3->CCMR1 |= (6 << 12); // Set OC2M to PWM mode 1
+    // 3.2 Part e: Enable OC1PE and OC2PE
+    TIM3->CCMR1 |= (1 << 3); // Enable preload for CCR1
+    TIM3->CCMR1 |= (1 << 11); // Enable preload for CCR2
+
+    TIM3->CCER |= (1 << 0) | (1 << 4); // Enable output for CC1 and CC2
+    TIM3->CCR1 = 9900;
+    TIM3->CCR2 = 9900;
+
+    TIM3->CR1 |= TIM_CR1_CEN; // Enable the timer
 }
 
 #ifdef USE_FULL_ASSERT
