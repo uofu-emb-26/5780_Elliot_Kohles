@@ -20,9 +20,45 @@ int main(void)
 
   while (1)
   {
-    Transmit_String("Toggle Green");
+    while(!(USART3->ISR & USART_ISR_RXNE)); // Wait until a character is received
+    char c = USART3->RDR; // Read the received character, NOTE: Reading RDR clears the RXNE flag
 
-    for(volatile int i = 0; i < 500000; i++); // basic delay
+    switch(c) {
+      case 'R': // If 'R' is received, turn on the red LED (PC6)
+        GPIOC->ODR ^= (1 << 6);
+        Transmit_String("Toggle Red\r\n");
+        break;
+      case 'r': // If 'r' is received, turn on the red LED (PC6)
+        GPIOC->ODR ^= (1 << 6);
+        Transmit_String("Toggle Red\r\n");
+        break;
+      case 'B': // If 'B' is received, turn on the blue LED (PC7)
+        GPIOC->ODR ^= (1 << 7);
+        Transmit_String("Toggle Blue\r\n");
+        break;
+      case 'b': // If 'b' is received, turn on the blue LED (PC7)
+        GPIOC->ODR ^= (1 << 7);
+        Transmit_String("Toggle Blue\r\n");
+        break;
+      case 'O': // If 'O' is received, turn on the orange LED (PC8)
+        GPIOC->ODR ^= (1 << 8);
+        Transmit_String("Toggle Orange\r\n");
+        break;
+      case 'o': // If 'o' is received, turn on the orange LED (PC8)
+        GPIOC->ODR ^= (1 << 8);
+        Transmit_String("Toggle Orange\r\n");
+        break;
+      case 'G': // If 'G' is received, turn on the green LED (PC9)
+        GPIOC->ODR ^= (1 << 9);
+        Transmit_String("Toggle Green\r\n");
+        break;
+      case 'g': // If 'g' is received, turn on the green LED (PC9)
+        GPIOC->ODR ^= (1 << 9);
+        Transmit_String("Toggle Green\r\n");
+        break;
+      default: // For any other character, turn off all LEDs
+        Transmit_String("Invalid Key: Only R, r, G, g, B, b, O, o are accepted.\r\n");
+    }
   }
   return -1;
 }
