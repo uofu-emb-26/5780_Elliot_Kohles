@@ -6,6 +6,8 @@ extern "C" {
 #endif
 
 void Error_Handler(void);
+void Transmit_Character(void);
+void Transmit_String(void);
 
 #ifdef __cplusplus
 }

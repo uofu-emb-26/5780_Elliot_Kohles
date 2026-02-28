@@ -14,22 +14,13 @@ int main(void)
   /* Configure the system clock */
   SystemClock_Config();
 
-  // Configure GPIO pins TX and RX for PB10 and PB11 to alternate function mode.
-  RCC->AHBENR |= RCC_AHBENR_GPIOBEN; // Enable clock for GPIOB
-  GPIOB->MODER &= ~((3 << (10 * 2)) | (3 << (11 * 2))); // Clear mode bits for PB10 and PB11
-  GPIOB->MODER |= (2 << (10 * 2)) | (2 << (11 * 2)); // Set mode to alternate function for PB10 and PB11
-
-  GPIOB->AFR[1] &= ~((0xF << ((10 - 8) * 4)) | (0xF << ((11 - 8) * 4))); // Clear alternate function bits for PB10 and PB11
-  GPIOB->AFR[1] |= (1 << ((10 - 8) * 4)) | (1 << ((11 - 8) * 4)); // Set alternate function to AF1 (USART1) for PB10 and PB11
-
-  RCC->APB1ENR |= RCC_APB1ENR_USART3EN; // Enable clock for USART3 
-  USART3->BRR = 8000000 / 115200; // Set baud rate to 115200
-  USART3->CR1 |= USART_CR1_TE | USART_CR1_RE; // Enable transmitter and receiver
-  USART3->CR1 |= USART_CR1_UE; // Enable USART3
+  IO_Pin_Config(); // Configure GPIO pins for USART3
+  USART3_Init();   // Initialize USART3
+  LED_Init();      // Initialize LEDs PC6-PC9
 
   while (1)
   {
- 
+    
   }
   return -1;
 }
@@ -80,6 +71,45 @@ void Error_Handler(void)
   while (1)
   {
   }
+}
+
+// Configure GPIO pins for USART3 (PB10 for TX and PB11 for RX)
+void IO_Pin_Config(void) {
+  // Configure GPIO pins TX and RX for PB10 and PB11 to alternate function mode.
+  RCC->AHBENR |= RCC_AHBENR_GPIOBEN; // Enable clock for GPIOB
+  GPIOB->MODER &= ~((3 << (10 * 2)) | (3 << (11 * 2))); // Clear mode bits for PB10 and PB11
+  GPIOB->MODER |= (2 << (10 * 2)) | (2 << (11 * 2)); // Set mode to alternate function for PB10 and PB11
+
+  GPIOB->AFR[1] &= ~((0xF << ((10 - 8) * 4)) | (0xF << ((11 - 8) * 4))); // Clear alternate function bits for PB10 and PB11
+  GPIOB->AFR[1] |= (1 << ((10 - 8) * 4)) | (1 << ((11 - 8) * 4)); // Set alternate function to AF1 (USART1) for PB10 and PB11
+}
+
+// Initialize USART3 with baud rate 115200, 8 data bits, no parity, and 1 stop bit
+void USART3_Init(void) {
+  RCC->APB1ENR |= RCC_APB1ENR_USART3EN; // Enable clock for USART3 
+  USART3->BRR = 8000000 / 115200; // Set baud rate to 115200
+  USART3->CR1 |= USART_CR1_TE | USART_CR1_RE; // Enable transmitter and receiver
+  USART3->CR1 |= USART_CR1_UE; // Enable USART3
+}
+
+void LED_Init(void) {
+  RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
+
+  GPIOC->MODER |= (1 << (6 * 2)) // Set PC6, PC7, PC8, and PC9 to output mode
+                | (1 << (7*2)) 
+                | (1 << (8*2)) 
+                | (1 << (9*2));
+}
+
+// Transmit a single character over USART3
+void Transmit_Character(char c) {
+  while(!(USART3->ISR & USART_ISR_TXE)); // Wait until transmit data register is empty
+  USART3->TDR = c; // Transmit the character
+}
+
+// Transmit a string over USART3
+void Transmit_String(char *s) {
+
 }
 
 #ifdef USE_FULL_ASSERT
