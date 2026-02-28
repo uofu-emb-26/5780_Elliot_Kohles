@@ -14,6 +14,19 @@ int main(void)
   /* Configure the system clock */
   SystemClock_Config();
 
+  // Configure GPIO pins TX and RX for PB10 and PB11 to alternate function mode.
+  RCC->AHBENR |= RCC_AHBENR_GPIOBEN; // Enable clock for GPIOB
+  GPIOB->MODER &= ~((3 << (10 * 2)) | (3 << (11 * 2))); // Clear mode bits for PB10 and PB11
+  GPIOB->MODER |= (2 << (10 * 2)) | (2 << (11 * 2)); // Set mode to alternate function for PB10 and PB11
+
+  GPIOB->AFR[1] &= ~((0xF << ((10 - 8) * 4)) | (0xF << ((11 - 8) * 4))); // Clear alternate function bits for PB10 and PB11
+  GPIOB->AFR[1] |= (1 << ((10 - 8) * 4)) | (1 << ((11 - 8) * 4)); // Set alternate function to AF1 (USART1) for PB10 and PB11
+
+  RCC->APB1ENR |= RCC_APB1ENR_USART3EN; // Enable clock for USART3 
+  USART3->BRR = 8000000 / 115200; // Set baud rate to 115200
+  USART3->CR1 |= USART_CR1_TE | USART_CR1_RE; // Enable transmitter and receiver
+  USART3->CR1 |= USART_CR1_UE; // Enable USART3
+
   while (1)
   {
  
