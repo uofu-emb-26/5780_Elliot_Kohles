@@ -20,7 +20,7 @@ int main(void)
 
   while (1)
   {
-    Transmit_Character('r');
+    Transmit_String("Toggle Green");
 
     for(volatile int i = 0; i < 500000; i++); // basic delay
   }
@@ -111,7 +111,9 @@ void Transmit_Character(char c) {
 
 // Transmit a string over USART3
 void Transmit_String(char *s) {
-
+  while(*s) {
+    Transmit_Character(*s++); // Transmit each character in the string
+  }
 }
 
 #ifdef USE_FULL_ASSERT
