@@ -1,5 +1,6 @@
 #include "main.h"
 #include "stm32f0xx_hal.h"
+#include <stdio.h>
 
 void SystemClock_Config(void);
 
@@ -20,44 +21,212 @@ int main(void)
 
   while (1)
   {
+    char num; // Variable to store the number received after the initial character
+    char error_msg[100]; // Buffer to store error messages
+
+    Transmit_String("Enter Command: "); // Prompt the user to enter a command
     while(!(USART3->ISR & USART_ISR_RXNE)); // Wait until a character is received
+    
     char c = USART3->RDR; // Read the received character, NOTE: Reading RDR clears the RXNE flag
+    Transmit_Character(c); // Echo the received character back to the user
 
     switch(c) {
       case 'R': // If 'R' is received, turn on the red LED (PC6)
-        GPIOC->ODR ^= (1 << 6);
-        Transmit_String("Toggle Red\r\n");
+        while(!(USART3->ISR & USART_ISR_RXNE)); // Wait until a character is received
+        num = USART3->RDR; // Read the received character, NOTE: Reading RDR clears the RXNE flag
+
+        // Echo the received number back to the user. Newline for clean formatting.
+        Transmit_Character(num);
+        Transmit_Character('\r\n');
+
+        switch(num) {
+          case '0':
+            GPIOC->ODR &= ~(1 << 6); // Turn off red LED
+            Transmit_String("Red Off\r\n");
+            break;
+          case '1':
+            GPIOC->ODR |= (1 << 6); // Turn on red LED
+            Transmit_String("Red On\r\n");
+            break;
+          case '2':
+            GPIOC->ODR ^= (1 << 6); // Toggle red LED
+            Transmit_String("Toggle Red\r\n");
+            break;
+          default:
+            sprintf(error_msg, "Invalid Number: '%c'. Only 0, 1, and 2 are accepted for each LED.\r\n", num);
+            Transmit_String(error_msg);
+        }
         break;
-      case 'r': // If 'r' is received, turn on the red LED (PC6)
-        GPIOC->ODR ^= (1 << 6);
-        Transmit_String("Toggle Red\r\n");
+
+      case 'r':
+        while(!(USART3->ISR & USART_ISR_RXNE));
+        num = USART3->RDR;
+
+        Transmit_Character(num); // Echo the received number back to the user
+        Transmit_Character('\r\n'); // Echo a carriage return for better formatting
+        
+        switch(num) {
+          case '0':
+            GPIOC->ODR &= ~(1 << 6); // Turn off red LED
+            Transmit_String("Red Off\r\n");
+            break;
+          case '1':
+            GPIOC->ODR |= (1 << 6); // Turn on red LED
+            Transmit_String("Red On\r\n");
+            break;
+          case '2':
+            GPIOC->ODR ^= (1 << 6); // Toggle red LED
+            Transmit_String("Toggle Red\r\n");
+            break;
+          default:
+            sprintf(error_msg, "Invalid Number: '%c'. Only 0, 1, and 2 are accepted for each LED.\r\n", num);
+            Transmit_String(error_msg);
+        }
         break;
       case 'B': // If 'B' is received, turn on the blue LED (PC7)
-        GPIOC->ODR ^= (1 << 7);
-        Transmit_String("Toggle Blue\r\n");
+        while(!(USART3->ISR & USART_ISR_RXNE)); // Wait until a character is received
+        num = USART3->RDR; // Read the received character, NOTE: Reading RDR clears the RXNE flag
+        Transmit_Character(num); // Echo the received number back to the user
+        Transmit_Character('\r\n'); // Echo a carriage return for better formatting
+        switch(num) {
+          // Case 0 turns off the blue LED, case 1 turns on the blue LED, and case 2 toggles the blue LED
+          case '0':
+            GPIOC->ODR &= ~(1 << 7); // Turn off blue LED
+            Transmit_String("Blue Off\r\n");
+            break;
+          case '1':
+            GPIOC->ODR |= (1 << 7); // Turn on blue LED
+            Transmit_String("Blue On\r\n");
+            break;
+          case '2':
+            GPIOC->ODR ^= (1 << 7); // Toggle blue LED
+            Transmit_String("Toggle Blue\r\n");
+            break;
+          default:
+            sprintf(error_msg, "Invalid Number: '%c'. Only 0, 1, and 2 are accepted for each LED.\r\n", num);
+            Transmit_String(error_msg);
+        }
         break;
       case 'b': // If 'b' is received, turn on the blue LED (PC7)
-        GPIOC->ODR ^= (1 << 7);
-        Transmit_String("Toggle Blue\r\n");
-        break;
+        while(!(USART3->ISR & USART_ISR_RXNE)); // Wait until a character is received
+        num = USART3->RDR; // Read the received character, NOTE: Reading RDR clears the RXNE flag
+        Transmit_Character(num); // Echo the received number back to the user
+        Transmit_Character('\r\n'); // Echo a carriage return for better formatting
+        switch(num) {
+          // Case 0 turns off the blue LED, case 1 turns on the blue LED, and case 2 toggles the blue LED
+          case '0':
+            GPIOC->ODR &= ~(1 << 7); // Turn off blue LED
+            Transmit_String("Blue Off\r\n");
+            break;
+          case '1':
+            GPIOC->ODR |= (1 << 7); // Turn on blue LED
+            Transmit_String("Blue On\r\n");
+            break;
+          case '2':
+            GPIOC->ODR ^= (1 << 7); // Toggle blue LED
+            Transmit_String("Toggle Blue\r\n");
+            break;
+          default:
+            sprintf(error_msg, "Invalid Number: '%c'. Only 0, 1, and 2 are accepted for each LED.\r\n", num);
+            Transmit_String(error_msg);
+        }
       case 'O': // If 'O' is received, turn on the orange LED (PC8)
-        GPIOC->ODR ^= (1 << 8);
-        Transmit_String("Toggle Orange\r\n");
+        while(!(USART3->ISR & USART_ISR_RXNE)); // Wait until a character is received
+        num = USART3->RDR; // Read the received character, NOTE: Reading RDR clears the RXNE flag
+        Transmit_Character(num); // Echo the received number back to the user
+        Transmit_Character('\r\n'); // Echo a carriage return for better formatting
+        switch(num) {
+          // Case 0 turns off the orange LED, case 1 turns on the orange LED, and case 2 toggles the orange LED
+          case '0':
+            GPIOC->ODR &= ~(1 << 8); // Turn off orange LED
+            Transmit_String("Orange Off\r\n");
+            break;
+          case '1':
+            GPIOC->ODR |= (1 << 8); // Turn on orange LED
+            Transmit_String("Orange On\r\n");
+            break;
+          case '2':
+            GPIOC->ODR ^= (1 << 8); // Toggle orange LED
+            Transmit_String("Toggle Orange\r\n");
+            break;
+          default:
+            sprintf(error_msg, "Invalid Number: '%c'. Only 0, 1, and 2 are accepted for each LED.\r\n", num);
+            Transmit_String(error_msg);
+        }
         break;
       case 'o': // If 'o' is received, turn on the orange LED (PC8)
-        GPIOC->ODR ^= (1 << 8);
-        Transmit_String("Toggle Orange\r\n");
-        break;
+        while(!(USART3->ISR & USART_ISR_RXNE)); // Wait until a character is received
+        num = USART3->RDR; // Read the received character, NOTE: Reading RDR clears the RXNE flag
+        Transmit_Character(num); // Echo the received number back to the user
+        Transmit_Character('\r\n'); // Echo a carriage return for better formatting
+        switch(num) {
+          // Case 0 turns off the orange LED, case 1 turns on the orange LED, and case 2 toggles the orange LED
+          case '0':
+            GPIOC->ODR &= ~(1 << 8); // Turn off orange LED
+            Transmit_String("Orange Off\r\n");
+            break;
+          case '1':
+            GPIOC->ODR |= (1 << 8); // Turn on orange LED
+            Transmit_String("Orange On\r\n");
+            break;
+          case '2':
+            GPIOC->ODR ^= (1 << 8); // Toggle orange LED
+            Transmit_String("Toggle Orange\r\n");
+            break;
+          default:
+            sprintf(error_msg, "Invalid Number: '%c'. Only 0, 1, and 2 are accepted for each LED.\r\n", num);
+            Transmit_String(error_msg);
+        }
       case 'G': // If 'G' is received, turn on the green LED (PC9)
-        GPIOC->ODR ^= (1 << 9);
-        Transmit_String("Toggle Green\r\n");
+        while(!(USART3->ISR & USART_ISR_RXNE)); // Wait until a character is received
+        num = USART3->RDR; // Read the received character, NOTE: Reading RDR clears the RXNE flag
+        Transmit_Character(num); // Echo the received number back to the user
+        Transmit_Character('\r\n'); // Echo a carriage return for better formatting
+        switch(num) {
+          // Case 0 turns off the green LED, case 1 turns on the green LED, and case 2 toggles the green LED
+          case '0':
+            GPIOC->ODR &= ~(1 << 9); // Turn off green LED
+            Transmit_String("Green Off\r\n");
+            break;
+          case '1':
+            GPIOC->ODR |= (1 << 9); // Turn on green LED
+            Transmit_String("Green On\r\n");
+            break;
+          case '2':
+            GPIOC->ODR ^= (1 << 9); // Toggle green LED
+            Transmit_String("Toggle Green\r\n");
+            break;
+          default:
+            sprintf(error_msg, "Invalid Number: '%c'. Only 0, 1, and 2 are accepted for each LED.\r\n", num);
+            Transmit_String(error_msg);
+        }
         break;
       case 'g': // If 'g' is received, turn on the green LED (PC9)
-        GPIOC->ODR ^= (1 << 9);
-        Transmit_String("Toggle Green\r\n");
-        break;
+        while(!(USART3->ISR & USART_ISR_RXNE)); // Wait until a character is received
+        num = USART3->RDR; // Read the received character, NOTE: Reading RDR clears the RXNE flag
+        Transmit_Character(num); // Echo the received number back to the user
+        Transmit_Character('\r\n'); // Echo a carriage return for better formatting
+        switch(num) {
+          // Case 0 turns off the green LED, case 1 turns on the green LED, and case 2 toggles the green LED
+          case '0':
+            GPIOC->ODR &= ~(1 << 9); // Turn off green LED
+            Transmit_String("Green Off\r\n");
+            break;
+          case '1':
+            GPIOC->ODR |= (1 << 9); // Turn on green LED
+            Transmit_String("Green On\r\n");
+            break;
+          case '2':
+            GPIOC->ODR ^= (1 << 9); // Toggle green LED
+            Transmit_String("Toggle Green\r\n");
+            break;
+          default:
+            sprintf(error_msg, "Invalid Number: '%c'. Only 0, 1, and 2 are accepted for each LED.\r\n", num);
+            Transmit_String(error_msg);
+        }
       default: // For any other character, turn off all LEDs
-        Transmit_String("Invalid Key: Only R, r, G, g, B, b, O, o are accepted.\r\n");
+        sprintf(error_msg, "Invalid Character: '%c'. Only r,g,b,o(0-2) are accepted.(example: R1, o0)\r\n", c);
+        Transmit_String(error_msg);
     }
   }
   return -1;
