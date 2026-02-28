@@ -20,7 +20,9 @@ int main(void)
 
   while (1)
   {
-    
+    Transmit_Character('r');
+
+    for(volatile int i = 0; i < 500000; i++); // basic delay
   }
   return -1;
 }
@@ -81,7 +83,7 @@ void IO_Pin_Config(void) {
   GPIOB->MODER |= (2 << (10 * 2)) | (2 << (11 * 2)); // Set mode to alternate function for PB10 and PB11
 
   GPIOB->AFR[1] &= ~((0xF << ((10 - 8) * 4)) | (0xF << ((11 - 8) * 4))); // Clear alternate function bits for PB10 and PB11
-  GPIOB->AFR[1] |= (1 << ((10 - 8) * 4)) | (1 << ((11 - 8) * 4)); // Set alternate function to AF1 (USART1) for PB10 and PB11
+  GPIOB->AFR[1] |= (4 << ((10 - 8) * 4)) | (4 << ((11 - 8) * 4)); // Set alternate function to AF4 (USART3) for PB10 and PB11
 }
 
 // Initialize USART3 with baud rate 115200, 8 data bits, no parity, and 1 stop bit

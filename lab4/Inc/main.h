@@ -6,8 +6,11 @@ extern "C" {
 #endif
 
 void Error_Handler(void);
-void Transmit_Character(void);
-void Transmit_String(void);
+void Transmit_Character(char c);
+void Transmit_String(char *s);
+void IO_Pin_Config(void);
+void USART3_Init(void);
+void LED_Init(void);
 
 #ifdef __cplusplus
 }
