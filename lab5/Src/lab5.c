@@ -14,6 +14,42 @@ int main(void)
   /* Configure the system clock */
   SystemClock_Config();
 
+  RCC->AHBENR |= RCC_AHBENR_GPIOBEN; // Enable clock for GPIOB
+  RCC->AHBENR |= RCC_AHBENR_GPIOCEN; // Enable clock for GPIOC
+  RCC->APB1ENR |= RCC_APB1ENR_I2C2EN; // Enable clock for I2C2
+
+  //Set PB11 to alternate function mode, open-drain output type, and select I2C2_SDA as its
+  //alternate function.
+  GPIOB->MODER &= ~(3 << (11 * 2)); // Clear mode bits for PB11
+  GPIOB->MODER |= (2 << (11 * 2)); // Set PB11 to alternate function mode
+
+  GPIOB->OTYPER |= (1 << 11); // Set PB11 to open-drain output type
+  
+  GPIOB->AFR[1] &= ~(0xF << (11 - 8) *4); // Clear I2C2_SDA alternate function bits for PB11
+  GPIOB->AFR[1] |= (1 << ((11 - 8) * 4)); // Select I2C2_SDA as alternate function for PB11
+
+  // Set PB13 to alternate function mode, open-drain output type, and select I2C2_SCL as its
+  // alternate function.
+  GPIOB->MODER &= ~(3 << (13 * 2)); // Clear mode bits for PB13
+  GPIOB->MODER |= (2 << (13 * 2)); // Set PB13 to alternate function mode
+
+  GPIOB->OTYPER |= (1 << 13); // Set PB13 to open-drain output type
+  GPIOB->AFR[1] &= ~(0xF << (13 - 8) *4); // Clear I2C2_SCL alternate function bits for PB13
+  GPIOB->AFR[1] |= (1 << ((13 - 8) * 4)); // Select I2C2_SCL as alternate function for PB13
+
+  //Set PB14 to output mode, push-pull output type, and initialize/set the pin high.
+  GPIOB->MODER &= ~(3 << (14 * 2)); // Set PB14 to output mode
+  GPIOB->MODER |= (1 << (14 * 2)); // Set PB14 to output mode
+  GPIOB->OTYPER &= ~(1 << 14); // Set PB14 to push-pull output type
+  GPIOB->ODR |= (1 << 14); // Initialize/set PB14 high
+
+  // Set PC0 to output mode, push-pull output type, and initialize/set the pin high.
+  GPIOC->MODER &= ~(3 << (0 * 2)); // Set PC0 to output mode
+  GPIOC->MODER |= (1 << (0 * 2)); // Set PC0 to output mode
+  GPIOC->OTYPER &= ~(1 << 0); // Set PC0 to push-pull output type
+  GPIOC->ODR |= (1 << 0); // Initialize/set PC0 high
+
+
   while (1)
   {
  
