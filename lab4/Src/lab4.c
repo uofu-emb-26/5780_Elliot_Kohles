@@ -96,7 +96,7 @@ int main(void)
 
         while(!(USART3->ISR & USART_ISR_RXNE)); // Wait for num
         num = USART3->RDR; // Read num
-
+        
         // Echo num to user. New line for readability.
         Transmit_Character(num);
         Transmit_String("\r\n");
@@ -205,7 +205,6 @@ int main(void)
       break;
 
       case 'G':
-
         while(!(USART3->ISR & USART_ISR_RXNE)); // Wait for num
         num = USART3->RDR; // Read num
 
