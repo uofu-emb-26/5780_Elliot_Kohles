@@ -45,14 +45,102 @@ int main(void)
 
   // Set PC0 to output mode, push-pull output type, and initialize/set the pin high.
   GPIOC->MODER &= ~(3 << (0 * 2)); // Set PC0 to output mode
+  
   GPIOC->MODER |= (1 << (0 * 2)); // Set PC0 to output mode
   GPIOC->OTYPER &= ~(1 << 0); // Set PC0 to push-pull output type
   GPIOC->ODR |= (1 << 0); // Initialize/set PC0 high
 
+  // Establish I2C2 communication
+  I2C2->CR1 &= ~I2C_CR1_PE; // Disable I2C2 before configuration
+  I2C2->TIMINGR = 0x2000090E; // Configure timing for 100 kHz I2C communication
+  I2C2->CR1 |= I2C_CR1_PE; // Enable I
 
+  // Read WHO_AM_I register 0xD3 with gyroscope address 0x69
+  // Write register address 
+  // SADD = 0x69
+  I2C2->CR2 &= ~((0x7F << 16) | (0x3FF << 0)); // Clear SADD and NBYTES fields
+  
+  // Set parameters for the transfer: SADD = 0x69, NBYTES = 1, and generate START condition
+  I2C2->CR2 |= (1 << 16) 
+  IC2C->CR2 |= (0x69 << 1); // Set SADD to 0x69, NBYTES to 1, and generate START condition
+  IC2C->CR2 &= ~(1 << 10); // RD_WRN = 0 for write operation
+
+  // Write 
+  I2C2->CR2 &= ~I2C_CR2_RD_WRN;
+  I2C2->CR2 |= I2C_CR2_START; // Generate START condition
+  while(!(I2C2->ISR & (I2C_ISR_TXIS | I2C_ISR_NACKF)));
+
+  if (I2C2->ISR & (I2C_ISR_NACKF)) {
+    // Handle NACK error
+    I2C2->ICR |= I2C_ICR_NACKCF; // Clear NACK flag
+  } else {
+    I2C2->TXDR = 0xD3; // Write register address to TXDR
+    while(!(I2C2->ISR & (I2C_ISR_TC | I2C_ISR_NACKF))); // Wait for transfer complete or NACK
+
+    if (I2C2->ISR & (I2C_ISR_NACKF)) {
+      // Handle NACK error
+      I2C2->ICR |= I2C_ICR_NACKCF; // Clear NACK flag
+    } else {
+      // Read data from WHO_AM_I register
+      I2C2->CR2 |= I2C_CR2_RD_WRN; // Set read mode
+      I2C2->CR2 |= I2C_CR2_START; // Generate repeated START condition
+      while(!(I2C2->ISR & (I2C_ISR_RXNE | I2C_ISR_NACKF))); // Wait for data reception or NACK
+
+      if (I2C2->ISR & (I2C_ISR_NACKF)) {
+        // Handle NACK error
+        I2C2->ICR |= I2C_ICR_NACKCF; // Clear NACK flag
+      } else {
+        uint8_t who_am_i = I2C2->RXDR; // Read received data from RXDR
+        // who_am_i should be 0xD3 for the L3GD20H gyroscope
+      }
+    }
+    
+  }
+
+  // Send register address
+  I2C2->TXDR = 0x0F;
+  while(!(I2C2->ISR & (I2C_ISR_TC | I2C_ISR_NACKF))); // Wait for transfer complete or NACK
+  
+  // Restart and Read
+  I2C2->CR2 &= ~((0x7F << 16) | (0x3FF)); // Clear SADD and NBYTES fields
+  I2C2->CR2 |= (1 << 16) | (0x69 << 1) | I2C_CR2_RD_WRN; // Set SADD to 0x69, NBYTES to 1, set read mode, and generate START condition
+
+  I2C2->CR2 |= I2C_CR2_RD_WRN; // Set read mode
+  I2C2->CR2 |= I2C_CR2_START; // Generate repeated START condition
+
+  // Wait for RXNE or NACK
+  while(!(I2C2->ISR & (I2C_ISR_RXNE | I2C_ISR_NACKF))); // Wait for data reception or NACK
+
+  // Read value
+  uint8_t who = I2C2->RXDR; // Read received data from RXDR
+
+  // Wait for TC
+  while(!(I2C2->ISR & (I2C_ISR_TC | I2C_ISR_NACKF))); // Wait for transfer complete or NACK
+
+  // Generate STOP condition
+  I2C2->CR2 |= I2C_CR2_STOP;
+
+  // Check value of WHO_AM_I register
+  if (who == 0xD3) {
+    // WHO_AM_I register value is correct, indicating successful communication with the gyroscope
+    // Add code here to indicate success, toggling an LED or sending
+
+    // toggle LED's
+    GPIOC->ODR ^= (1 << 0); // Toggle PC0 to indicate success
+    // You can also add code here to send a success message over USART3, such as:
+    // Transmit_String("Gyroscope communication successful!\r\n");
+    // implement the above comment
+    Transmit_String("Gyroscope communication successful!\r\n");
+
+  } // a message over USART3
+
+  else {
+    // WHO_AM_I register value is incorrect, indicating a communication error with the gyroscope
+    // You can add code here to indicate an error, such as toggling an LED or sending an error message over USART3
+  }
   while (1)
   {
- 
+    
   }
   return -1;
 }
