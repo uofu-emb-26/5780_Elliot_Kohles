@@ -123,16 +123,9 @@ int main(void)
   // Check value of WHO_AM_I register
   if (who == 0xD3) {
     // WHO_AM_I register value is correct, indicating successful communication with the gyroscope
-    // Add code here to indicate success, toggling an LED or sending
+    // Add code here to indicate success, toggling an LED
 
-    // toggle LED's
-    GPIOC->ODR ^= (1 << 0); // Toggle PC0 to indicate success
-    // You can also add code here to send a success message over USART3, such as:
-    // Transmit_String("Gyroscope communication successful!\r\n");
-    // implement the above comment
-    Transmit_String("Gyroscope communication successful!\r\n");
-
-  } // a message over USART3
+  }
 
   else {
     // WHO_AM_I register value is incorrect, indicating a communication error with the gyroscope
