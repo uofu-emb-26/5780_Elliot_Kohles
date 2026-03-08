@@ -21,14 +21,24 @@ int main(void)
   ESTABLISH_I2C2_COMMS();
 
   // Read WHO_AM_I register from gyroscope
-  READ_WHOAMI();
-
-
-  
+  //I2C_READ_REGISTER();
 
   while (1)
   {
-    
+    // Temporary LED toggle verification to confirm
+    // WHO_AM_I is being read correctly.
+
+    GPIOC->ODR ^= (1 << 7); // Toggle blue LED on PC7
+
+    uint8_t who = I2C_READ_REGISTER(0x69, 0x0F); // Read WHO_AM_I register (0x0F) from gyroscope at address 0x69
+
+    if(who == 0xD3) {
+      GPIOC->ODR |= (1 << 9); // Toggle green LED on PC9
+    }
+    else {
+      GPIOC->ODR |= (1 << 6); // Toggle red LED on PC6
+    }
+    HAL_Delay(500); // Delay for 500 milliseconds
   }
   return -1;
 }
@@ -69,6 +79,21 @@ void SystemClock_Config(void)
 }
 
 void INIT_STMHARDWARE(void) {
+
+  // Setup test LED pins
+  // Enable GPIOC clock
+  // RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
+
+  // Set PC6, PC8 and PC9 to output mode
+  GPIOC->MODER &= ~(3 << (6 * 2));
+  GPIOC->MODER &= ~(3 << (7 * 2));
+  GPIOC->MODER &= ~(3 << (9 * 2));
+
+  GPIOC->MODER |= (1 << (6 * 2));
+  GPIOC->MODER |= (1 << (7 * 2));
+  GPIOC->MODER |= (1 << (9 * 2));
+
+
   RCC->AHBENR |= RCC_AHBENR_GPIOBEN; // Enable clock for GPIOB
   RCC->AHBENR |= RCC_AHBENR_GPIOCEN; // Enable clock for GPIOC
   RCC->APB1ENR |= RCC_APB1ENR_I2C2EN; // Enable clock for I2C2
