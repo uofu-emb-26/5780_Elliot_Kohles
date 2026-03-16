@@ -1,7 +1,42 @@
 #include "main.h"
 #include "stm32f0xx_hal.h"
+#include <stdbool.h>
+#include <stdint.h>
 
 void SystemClock_Config(void);
+
+// Device definitions
+#define GYRO_ADDR_7BIT 0x69 // Gyroscope I2C address
+#define WHO_AM_I_REG 0x0F // WHO_AM_I register address
+#define CTRL_REG1 0x20 // Control register 1 address
+#define OUT_X_L 0x28 // Output register for X-axis low byte
+#define AUTO_INCREMENT 0x80 // Auto-increment bit for multi-byte reads
+#define WHO_AM_I_EXPECTED 0xD3 // Expected value in WHO_AM_I register
+
+// LED and gyro definitions
+#define LED_PORT GPIOC
+#define LED_UP_PIN 6 // Red LED on PC6
+#define LED_DOWN_PIN 7 // Blue LED on PC7
+#define LED_LEFT_PIN 8 // Green LED on PC8
+#define LED_RIGHT_PIN 9 // Green LED on PC9
+
+#define GYRO_MODE_PIN 0 // Gyroscope mode control pin on PC0
+#define GYRO_POWER_PIN 14 // Gyroscope power control pin on PB14
+
+#define AXIS_THRESHOLD 2500 // Threshold to ignore small movements.
+
+// Timing definitions
+static volatile uint32_t g_ms_ticks = 0; // Millisecond tick counter
+
+void SysTick_Handler(void) {
+  g_ms_ticks++;
+}
+
+static void delay_init(void) {
+  SystemCoreClockUpdate(); // Update SystemCoreClock variable
+  // Configure SysTick to generate an interrupt every 1 ms
+  SysTick_Config(SystemCoreClock / 1000);
+}
 
 /**
   * @brief  The application entry point.
