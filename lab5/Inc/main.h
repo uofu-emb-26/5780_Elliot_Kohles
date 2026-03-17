@@ -8,12 +8,14 @@ extern "C" {
 #endif
 
 void Error_Handler(void);
-void INIT_STMHARDWARE(void);
-void ESTABLISH_I2C2_COMMS(void);
-uint8_t I2C_READ_REGISTER(uint8_t slave_addr, uint8_t reg);
-void I2C_READ_REGISTERS(uint8_t slave_addr, uint8_t reg, uint8_t *buffer, uint16_t length);
-// void READ_WHOAMI(void);
-// void VERIFY_WHOAMI(uint8_t who_am_i);
+void delay_init(void);
+void delay_ms(uint32_t ms);
+void GPIO_init(void);
+void I2C_init(void);
+void show_direction(int16_t x, int16_t y);
+int gyro_read_whoami(uint8_t *whoami);
+int gyro_init(void);
+int gyro_read_axes(int16_t *x, int16_t *y);
 
 #ifdef __cplusplus
 }
