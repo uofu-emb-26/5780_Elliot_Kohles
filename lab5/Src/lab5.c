@@ -10,6 +10,9 @@ void SystemClock_Config(void);
 #define WHO_AM_I_REG 0x0F // WHO_AM_I register address
 #define CTRL_REG1 0x20 // Control register 1 address
 #define OUT_X_L 0x28 // Output register for X-axis low byte
+#define OUT_X_H 0x29 // Output register for X-axis high byte
+#define OUT_Y_L 0x2A // Output register for Y-axis low byte
+#define OUT_Y_H 0x2B // Output register for Y-axis high byte
 #define AUTO_INCREMENT 0x80 // Auto-increment bit for multi-byte reads
 #define WHO_AM_I_EXPECTED 0xD3 // Expected value in WHO_AM_I register
 
@@ -95,9 +98,12 @@ void GPIO_init(void) {
   GPIOB->MODER &= ~((3 << (sda_pin * 2)) | (3 << (scl_pin * 2))); // Clear mode bits
   GPIOB->MODER |= (2 << (sda_pin * 2)) | (2 << (scl_pin * 2)); // Set to alternate function mode
   GPIOB->OTYPER |= (1 << sda_pin) | (1 << scl_pin); // Set to open-drain
-  GPIOB->PUPDR &= ~((3 << (sda_pin * 2)) | (3 << (scl_pin * 2))); // No pull-up/pull-down
+  GPIOB->PUPDR &= ~((3 << (sda_pin * 2)) | (3 << (scl_pin * 2))); // Clear pull-up/pull-down
+  GPIOB->PUPDR |= (1 << (sda_pin * 2)) | (1 << (scl_pin * 2)); // Enable pull-up resistors
+
   GPIOB->AFR[1] &= ~((0xF << ((sda_pin - 8) * 4)) | (0xF << ((scl_pin - 8) * 4))); // Clear alternate function bits
-  GPIOB->AFR[1] |= (1 << ((sda_pin - 8) * 4)) | (1 << ((scl_pin - 8) * 4)); // Set alternate function to AF1 (I2C2)
+  GPIOB->AFR[1] |= (0x1 << ((11 - 8) * 4));
+  GPIOB->AFR[1] |= (0x5 << ((13 - 8) * 4));
 }
 
 // I2C helper functions
@@ -108,187 +114,147 @@ void I2C_init(void) {
 
   I2C2->CR1 &= ~I2C_CR1_PE; // Disable I2C2 before configuration
 
+  // Reset I2C2
+  RCC->APB1RSTR |= RCC_APB1RSTR_I2C2RST;
+  RCC->APB1RSTR &= ~RCC_APB1RSTR_I2C2RST;
+
   // Configure I2C timing for 100 kHz
-  I2C2->TIMINGR = 0x2000090E; // This value may need to be adjusted based on the actual clock frequency
+  I2C2->TIMINGR = (1u << 28) | (4u << 20) | (2u << 16) | (0x0Fu << 8) | (0x13u << 0);
 
   // Clear state flags
-  I2C2->ICR = I2C_ICR_TIMOUTCF | I2C_ICR_NACKCF | I2C_ICR_STOPCF | I2C_ICR_BERRCF | I2C_ICR_ARLOCF | I2C_ICR_OVRCF;
+  I2C2->ICR = I2C_ICR_NACKCF | I2C_ICR_STOPCF | I2C_ICR_BERRCF | I2C_ICR_ARLOCF | I2C_ICR_OVRCF;
 
   // Enable I2C2
   I2C2->CR1 |= I2C_CR1_PE;
 }
 
-static inline void I2C2_start(uint8_t addr7, uint8_t nbytes, bool read) {
-  uint32_t cr2 = I2C2->CR2;
-
-  cr2 &= ~(I2C_CR2_SADD_Msk |
-             I2C_CR2_NBYTES_Msk |
-             I2C_CR2_RD_WRN |
-             I2C_CR2_AUTOEND |
-             I2C_CR2_RELOAD |
-             I2C_CR2_START |
-             I2C_CR2_STOP);
-
-    cr2 |= ((uint32_t)addr7 << 1) & I2C_CR2_SADD_Msk;
-    cr2 |= ((uint32_t)nbytes << I2C_CR2_NBYTES_Pos) & I2C_CR2_NBYTES_Msk;
-    if (read) {
-        cr2 |= I2C_CR2_RD_WRN;
-    }
-    cr2 |= I2C_CR2_START;
-
-    I2C2->CR2 = cr2;
-}
-
-int I2C2_txis_nack_wait(void) {
-  uint32_t timeout = 2000000;
-    while ((I2C2->ISR & (I2C_ISR_TXIS | I2C_ISR_NACKF)) == 0) {
-        if (timeout-- == 0) return -1;
-    }
-    if (I2C2->ISR & I2C_ISR_NACKF) {
-        I2C2->ICR = I2C_ICR_NACKCF;
-        return -2;
-    }
-    return 0;
-}
-
-int I2C2_nack_rxne_wait(void) {
-  uint32_t timeout = 2000000;
-    while ((I2C2->ISR & (I2C_ISR_RXNE | I2C_ISR_NACKF)) == 0) {
-        if (timeout-- == 0) return -1;
-    }
-    if (I2C2->ISR & I2C_ISR_NACKF) {
-        I2C2->ICR = I2C_ICR_NACKCF;
-        return -2;
-    }
-    return 0;
-}
-
-int I2C2_tc_nack_wait(void) {
-  uint32_t timeout = 2000000;
-    while ((I2C2->ISR & (I2C_ISR_TC | I2C_ISR_NACKF)) == 0) {
-        if (timeout-- == 0) return -1;
-    }
-    if (I2C2->ISR & I2C_ISR_NACKF) {
-        I2C2->ICR = I2C_ICR_NACKCF;
-        return -2;
-    }
-    return 0;
-}
-
-void stop_and_clear(void) {
-  I2C2->CR2 |= I2C_CR2_STOP; // Generate STOP condition
-  while ((I2C2->ISR & I2C_ISR_STOPF) == 0); // Wait for STOP condition to be sent
-  I2C2->ICR = I2C_ICR_STOPCF | I2C_ICR_NACKCF; // Clear STOP and NACK flags
-}
-
-int gyro_write_reg(uint8_t reg, uint8_t value) {
-  I2C2_start(GYRO_ADDR_7BIT, 2, false); // Start write transfer
-  if (I2C2_txis_nack_wait() != 0) {
-    //stop_and_clear();
-    return -1; // Error during address transmission
+void clear_flags(void) {
+  if(I2C2->ISR & I2C_ISR_NACKF) {
+    I2C2->ICR = I2C_ICR_NACKCF;
   }
+  if(I2C2->ISR & I2C_ISR_STOPF) {
+    I2C2->ICR = I2C_ICR_STOPCF;
+  }
+  if(I2C2->ISR & I2C_ISR_BERR) {
+    I2C2->ICR = I2C_ICR_BERRCF;
+  }
+  if(I2C2->ISR & I2C_ISR_ARLO) {
+    I2C2->ICR = I2C_ICR_ARLOCF;
+  }
+  if(I2C2->ISR & I2C_ISR_OVR) {
+    I2C2->ICR = I2C_ICR_OVRCF;
+  }
+}
+
+static void gyro_write_reg(uint8_t reg, uint8_t value) {
+  while(I2C2->ISR & I2C_ISR_BUSY); // Wait until I2C is not busy
+  clear_flags(); // Clear any existing flags
+
+  // Start I2C transfer
+  I2C2->CR2 = ((uint32_t)(GYRO_ADDR_7BIT << 1) << I2C_CR2_SADD_Pos) |
+  (2u << I2C_CR2_NBYTES_Pos) | I2C_CR2_AUTOEND; // Set slave address, number of bytes, and enable auto-end mode
+  
+  I2C2->CR2 |= I2C_CR2_START; // Generate START
+  
+  while(!(I2C2->ISR & I2C_ISR_TXIS)); // Wait for TXIS flag to be set
   I2C2->TXDR = reg; // Send register address
-  if (I2C2_txis_nack_wait() != 0) {
-    //stop_and_clear();
-    return -2; // Error during register address transmission
-  }
+
+  while(!(I2C2->ISR & I2C_ISR_TXIS)); // Wait for TXIS flag to be set
   I2C2->TXDR = value; // Send register value
 
-  if (I2C2_tc_nack_wait() != 0) {
-    //stop_and_clear();
-    return -3; // Error during data transmission
-  }
-  stop_and_clear(); // Generate STOP condition
-  return 0; // Success
+  while(!(I2C2->ISR & I2C_ISR_STOPF));
+  I2C2->ICR = I2C_ICR_STOPCF; // Clear STOP flag
 }
 
-int gyro_read_reg(uint8_t reg, uint8_t *value) {
-  I2C2_start(GYRO_ADDR_7BIT, 1, false); // Start write transfer to send register address
+static uint8_t gyro_read_reg(uint8_t reg) {
+  uint8_t value = 0;
 
-  if (I2C2_txis_nack_wait() != 0) {
-    //stop_and_clear();
-    return -1; // Error during address transmission
-  }
+  while(I2C2->ISR & I2C_ISR_BUSY); // Wait until I2C is not busy
+  clear_flags(); // Clear any existing flags
+  
+  I2C2->CR2 = ((uint32_t)(GYRO_ADDR_7BIT << 1) << I2C_CR2_SADD_Pos) |
+  (1u << I2C_CR2_NBYTES_Pos); // Set slave address and number of bytes.
+
+  I2C2->CR2 |= I2C_CR2_START;
+  
+  while(!(I2C2->ISR & I2C_ISR_TXIS)); // Wait for TXIS flag to be set
   I2C2->TXDR = reg; // Send register address
-  
-  if (I2C2_tc_nack_wait() != 0) {
-    //stop_and_clear();
-    return -2; // Error during register address transmission
-  }
 
-  I2C2_start(GYRO_ADDR_7BIT, 1, true); // Start read transfer
-  
-  if (I2C2_nack_rxne_wait() != 0) {
-    //stop_and_clear();
-    return -3; // Error during repeated start or address transmission
-  }
-  *value = (uint8_t)I2C2->RXDR; // Read register value
+  while(!(I2C2->ISR & I2C_ISR_TC)); // Wait for transfer complete
 
-  if (I2C2_tc_nack_wait() != 0) {
-    //stop_and_clear();
-    return -4; // Error during data reception
-  }
-  stop_and_clear(); // Generate STOP condition
-  return 0; // Success
+  // Read
+  I2C2->CR2 = ((uint32_t)(GYRO_ADDR_7BIT << 1) << I2C_CR2_SADD_Pos) |
+  (1u << I2C_CR2_NBYTES_Pos) | I2C_CR2_RD_WRN | I2C_CR2_AUTOEND; // Set slave address, number of bytes, and enable auto-end mode
+
+  I2C2->CR2 |= I2C_CR2_START; // Generate START
+
+  while(!(I2C2->ISR & I2C_ISR_RXNE)); // Wait for RXNE flag to be set
+  value = (uint8_t)I2C2->RXDR; // Read byte
+
+  while(!(I2C2->ISR & I2C_ISR_STOPF));
+  I2C2->ICR = I2C_ICR_STOPCF; // Clear
+
+  return value;
 }
 
-int gyro_read_bytes(uint8_t start_reg, uint8_t *buf, uint8_t len) {
-  I2C2_start(GYRO_ADDR_7BIT, 1, false); // Start write transfer to send register address
-
-  if (I2C2_txis_nack_wait() != 0) {
-    //stop_and_clear();
-    return -1; // Error during address transmission
-  }
-  I2C2->TXDR = (uint8_t)(start_reg | AUTO_INCREMENT); // Send starting register address with auto-increment
+static void gyro_read_bytes(uint8_t start_reg, uint8_t *buf, uint8_t len) {
+  if(len == 0) return;
   
-  if (I2C2_tc_nack_wait() != 0) {
-    //stop_and_clear();
-    return -2; // Error during register address transmission
-  }
-
-  I2C2_start(GYRO_ADDR_7BIT, len, true); // Start read transfer for multiple bytes
+  while(I2C2->ISR & I2C_ISR_BUSY); // Wait until I2C is not busy
+  clear_flags(); // Clear any existing flags
   
-  for (uint8_t i = 0; i < len; i++) {
-    if (I2C2_nack_rxne_wait() != 0) {
-      //stop_and_clear();
-      return -3; // Error during repeated start or address transmission
-    }
-    buf[i] = (uint8_t)I2C2->RXDR; // Read byte into buffer
+  uint8_t reg = start_reg | AUTO_INCREMENT; // Set auto-increment bit for multi-byte read
+
+  // Send register
+  I2C2->CR2 = ((uint32_t)(GYRO_ADDR_7BIT << 1) << I2C_CR2_SADD_Pos) |
+  (1u << I2C_CR2_NBYTES_Pos); // Set slave address and number of bytes.
+
+  I2C2->CR2 |= I2C_CR2_START; // Generate START
+
+  while(!(I2C2->ISR & I2C_ISR_TXIS)); // Wait for TXIS flag to be set
+  I2C2->TXDR = reg; // Send register address
+
+  while(!(I2C2->ISR & I2C_ISR_TC)); // Wait for transfer complete
+
+  // Read multiple bytes
+  I2C2->CR2 = ((uint32_t)(GYRO_ADDR_7BIT << 1) << I2C_CR2_SADD_Pos) |
+  ((uint32_t)len << I2C_CR2_NBYTES_Pos) | I2C_CR2_RD_WRN | I2C_CR2_AUTOEND; // Set slave address, number of bytes, and enable auto-end mode
+
+  I2C2->CR2 |= I2C_CR2_START; // Generate START
+
+  for(uint8_t i = 0; i < len; i++) {
+    while(!(I2C2->ISR & I2C_ISR_RXNE)); // Wait for RXNE flag to be set
+    buf[i] = (uint8_t)I2C2->RXDR; // Read byte
   }
 
-  if (I2C2_tc_nack_wait() != 0) {
-    //stop_and_clear();
-    return -4; // Error during data reception
-  }
-  stop_and_clear(); // Generate STOP condition
-  return 0; // Success
+  while(!(I2C2->ISR & I2C_ISR_STOPF)); // Wait for STOP condition to be sent
+  I2C2->ICR = I2C_ICR_STOPCF; // Clear STOP flag
 }
 
 // Gyroscope helper functions
-int gyro_init(void) {
-  // Set CTRL_REG1 to normal mode with all axes enabled and ODR of 95 Hz
-  return gyro_write_reg(CTRL_REG1, 0x0F); // Normal mode, all axes enabled, ODR = 95 Hz
+void gyro_init(void) {
+  // CTRL_REG1: Normal mode, all axes enabled, 100 Hz data rate
+  gyro_write_reg(CTRL_REG1, 0x0F);
+  HAL_Delay(10);
 }
 
-int gyro_read_whoami(uint8_t *whoami) {
-  return gyro_read_reg(WHO_AM_I_REG, whoami);
+uint8_t gyro_read_whoami(void) {
+  return gyro_read_reg(WHO_AM_I_REG);
 }
 
 int gyro_read_axes(int16_t *x, int16_t *y) {
   uint8_t buf[4];
-  int status = gyro_read_bytes(OUT_X_L, buf, 4); // Read 4 bytes starting from OUT_X_L (X_L, X_H, Y_L, Y_H)
-  if (status != 0) {
-    return status; // Return error code if read failed
-  }
-  *x = (int16_t)((uint16_t)buf[1] << 8 | buf[0]); // Combine low and high bytes for X-axis
-  *y = (int16_t)((uint16_t)buf[3] << 8 | buf[2]); // Combine low and high bytes for Y-axis
-  return 0; // Success
+  gyro_read_bytes(OUT_X_L, buf, 4); // Read 4 bytes starting from OUT_X_L (X_L, X_H, Y_L, Y_H)
+
+  *x = (int16_t)((uint16_t)buf[0] | ((uint16_t)buf[1] << 8)); // Combine low and high bytes for X-axis
+  *y = (int16_t)((uint16_t)buf[2] | ((uint16_t)buf[3] << 8)); // Combine low and high bytes for Y-axis
+  return 0;
 }
 
 // LED control
 void show_direction(int16_t x, int16_t y) {
-  int32_t ax = (x < 0) ? -x : x; // Absolute value of X-axis
-  int32_t ay = (y < 0) ? -y : y; // Absolute value of Y-axis
+  int32_t ax = (x < 0) ? -(int32_t)x : (int32_t)x; // Absolute value of X-axis
+  int32_t ay = (y < 0) ? -(int32_t)y : (int32_t)y; // Absolute value of Y-axis
 
   // Clear all LEDs first
   clear_leds();
@@ -330,8 +296,17 @@ int main(void)
   I2C_init();
   
   // Read and verify WHO_AM_I register
-  uint8_t whoami = 0;
-  (void)gyro_read_whoami(&whoami);
+  uint8_t whoami;
+  whoami = gyro_read_whoami();
+
+  // Indicate success or failure of WHO_AM_I check using LEDs
+  if (whoami == WHO_AM_I_EXPECTED) {
+    set_pin(GPIOC, LED_RIGHT_PIN); // success indicator
+  } else {
+      set_pin(GPIOC, LED_LEFT_PIN);  // failure indicator
+  }
+  HAL_Delay(2000);
+  clear_leds();
 
   // Initialize gyroscope settings
   gyro_init();
