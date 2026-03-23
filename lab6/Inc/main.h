@@ -7,6 +7,7 @@ extern "C" {
 
 void Error_Handler(void);
 static void LED_Init(void);
+static void ADC_GPIO_Init(void);
 
 #ifdef __cplusplus
 }

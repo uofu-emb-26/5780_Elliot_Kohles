@@ -23,7 +23,15 @@ static void LED_Init(void) {
   HAL_GPIO_WritePin(LED_PORT, ALL_LEDS, GPIO_PIN_RESET); // Start with all LEDs off
 }
 
+static void ADC_GPIO_Init(void) {
+  __HAL_RCC_GPIOC_CLK_ENABLE(); // Enable clock for GPIOC
 
+  GPIO_InitTypeDef g = {0};
+  g.Pin = GPIO_PIN_0; // PC0 for ADC input
+  g.Mode = GPIO_MODE_ANALOG; // Analog mode
+  g.Pull = GPIO_NOPULL; // No pull-up or pull-down
+  HAL_GPIO_Init(GPIOC, &g);
+}
 
 /**
   * @brief  The application entry point.
