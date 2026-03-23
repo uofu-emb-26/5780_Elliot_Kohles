@@ -6,6 +6,7 @@ extern "C" {
 #endif
 
 void Error_Handler(void);
+static void LED_Init(void);
 
 #ifdef __cplusplus
 }

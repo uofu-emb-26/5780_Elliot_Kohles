@@ -3,6 +3,28 @@
 
 void SystemClock_Config(void);
 
+#define LED_PORT GPIOC
+#define LED_PIN_RED GPIO_PIN_6
+#define LED_PIN_BLUE GPIO_PIN_7
+#define LED_PIN_ORANGE GPIO_PIN_8
+#define LED_PIN_GREEN GPIO_PIN_9
+#define ALL_LEDS (LED_PIN_RED | LED_PIN_BLUE | LED_PIN_ORANGE | LED_PIN_GREEN)
+
+static void LED_Init(void) {
+  __HAL_RCC_GPIOC_CLK_ENABLE(); // Enable clock for GPIOC
+
+  GPIO_InitTypeDef g = {0};
+  g.Pin = ALL_LEDS;
+  g.Mode = GPIO_MODE_OUTPUT_PP; // Push-pull output
+  g.Pull = GPIO_NOPULL; // No pull-up or pull-down
+  g.Speed = GPIO_SPEED_FREQ_LOW; // Low speed
+  HAL_GPIO_Init(LED_PORT, &g);
+
+  HAL_GPIO_WritePin(LED_PORT, ALL_LEDS, GPIO_PIN_RESET); // Start with all LEDs off
+}
+
+
+
 /**
   * @brief  The application entry point.
   * @retval int

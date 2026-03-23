@@ -19,8 +19,8 @@ void SystemClock_Config(void);
 // LED and gyro definitions
 #define LED_UP_PIN 6 // Red LED on PC6
 #define LED_DOWN_PIN 7 // Blue LED on PC7
-#define LED_LEFT_PIN 8 // Green LED on PC8
-#define LED_RIGHT_PIN 9 // Green LED on PC9
+#define LED_LEFT_PIN 8 // Orange LED on PC9
+#define LED_RIGHT_PIN 9 // Green LED on PC8
 
 #define GYRO_MODE_PIN 0 // Gyroscope mode control pin on PC0
 #define GYRO_POWER_PIN 14 // Gyroscope power control pin on PB14
@@ -289,11 +289,13 @@ int main(void)
 {
   /* Configure the system clock */
   SystemClock_Config();
+  HAL_Init();
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   delay_init();
   GPIO_init();
   I2C_init();
+  HAL_Delay(100); // Delay to allow peripherals to stabilize
   
   // Read and verify WHO_AM_I register
   uint8_t whoami;
@@ -303,7 +305,7 @@ int main(void)
   if (whoami == WHO_AM_I_EXPECTED) {
     set_pin(GPIOC, LED_RIGHT_PIN); // success indicator
   } else {
-      set_pin(GPIOC, LED_LEFT_PIN);  // failure indicator
+      set_pin(GPIOC, LED_DOWN_PIN);  // failure indicator
   }
   HAL_Delay(2000);
   clear_leds();
