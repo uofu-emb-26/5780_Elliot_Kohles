@@ -1,3 +1,4 @@
+#include <cstdint>
 #ifndef __MAIN_H
 #define __MAIN_H
 
@@ -8,6 +9,7 @@ extern "C" {
 void Error_Handler(void);
 static void LED_Init(void);
 static void ADC_GPIO_Init(void);
+static uint8_t ADC1_Read(void);
 
 #ifdef __cplusplus
 }

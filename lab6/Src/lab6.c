@@ -27,10 +27,43 @@ static void ADC_GPIO_Init(void) {
   __HAL_RCC_GPIOC_CLK_ENABLE(); // Enable clock for GPIOC
 
   GPIO_InitTypeDef g = {0};
-  g.Pin = GPIO_PIN_0; // PC0 for ADC input
-  g.Mode = GPIO_MODE_ANALOG; // Analog mode
+  g.Pin = GPIO_PIN_0; // PC0 is ADC channel 10
+  g.Mode = GPIO_MODE_ANALOG; // Set to analog mode
   g.Pull = GPIO_NOPULL; // No pull-up or pull-down
   HAL_GPIO_Init(GPIOC, &g);
+}
+
+static void ADC1_Init(void) {
+  __HAL_RCC_GPIOC_CLK_ENABLE(); // Enable clock for GPIOC
+
+  RCC->CR2 |= RCC_CR2_HSI14ON; // Enable HSI14 oscillator
+  while (!(RCC->CR2 & RCC_CR2_HSI14RDY)); // Wait until HSI14 is ready
+
+  if(ADC1->CR & ADC_CR_ADEN) {
+    ADC1->CR |= ADC_CR_ADDIS; // Disable ADC if it is enabled
+    while (ADC1->CR & ADC_CR_ADEN); // Wait until ADC is disabled
+  }
+
+  ADC1->CR |= ADC_CR_ADCAL; // Start calibration
+  while (ADC1->CR & ADC_CR_ADCAL); // Wait until calibration is complete
+
+  ADC1->CFGR1 = 0; // Reset CFGR1
+  ADC1->CFGR1 |= ADC_CFGR1_RES_1; // Set resolution to 8 bits
+  
+  ADC1->CHSELR |= ADC_ChSELR_CHSEL10; // Select ADC channel 10
+  ADC1->SMPR = ADC_SMPR_SMP_2 | ADC_SMPR_SMP_1 | ADC_SMPR_SMP_0; // Set sampling time to 7.5 cycles
+
+  ADC1->ISR = ADC_ISR_ADRDY | ADC_ISR_EOC | ADC_ISR_EOSEQ | ADC_ISR_OVR; // Clear ADRDY flag
+
+  ADC1->CR |= ADC_CR_ADEN; // Enable ADC
+  while (!(ADC1->ISR & ADC_ISR_ADRDY)); // Wait until ADC is
+}
+
+static uint8_t ADC1_Read(void) {
+  ADC1->ISR = ADC_ISR_EOC | ADC_ISR_EOSEQ | ADC_ISR_OVR; // Clear EOC, EOSEQ, and OVR flags
+  ADC1->CR |= ADC_CR_ADSTART; // Start conversion
+  while (!(ADC1->ISR & ADC_ISR_EOC)); // Wait until conversion is complete
+  return (uint8_t)(ADC1->DR & 0xFF); // Return the converted value
 }
 
 /**
