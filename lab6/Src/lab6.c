@@ -66,6 +66,16 @@ static uint8_t ADC1_Read(void) {
   return (uint8_t)(ADC1->DR & 0xFF); // Return the converted value
 }
 
+static void DAC_GPIO_Init(void) {
+  __HAL_RCC_GPIOA_CLK_ENABLE(); // Enable clock for GPIOA
+
+  GPIO_InitTypeDef g = {0};
+  g.Pin = GPIO_PIN_4; // PA4 is DAC output
+  g.Mode = GPIO_MODE_ANALOG; // Set to analog mode
+  g.Pull = GPIO_NOPULL; // No pull-up or pull-down
+  HAL_GPIO_Init(GPIOA, &g);
+}
+
 /**
   * @brief  The application entry point.
   * @retval int

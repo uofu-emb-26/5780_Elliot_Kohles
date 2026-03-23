@@ -9,7 +9,9 @@ extern "C" {
 void Error_Handler(void);
 static void LED_Init(void);
 static void ADC_GPIO_Init(void);
+static void ADC1_Init(void);
 static uint8_t ADC1_Read(void);
+static void DAC_GPIO_Init(void);
 
 #ifdef __cplusplus
 }
