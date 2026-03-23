@@ -50,7 +50,7 @@ static void ADC1_Init(void) {
   ADC1->CFGR1 = 0; // Reset CFGR1
   ADC1->CFGR1 |= ADC_CFGR1_RES_1; // Set resolution to 8 bits
   
-  ADC1->CHSELR |= ADC_ChSELR_CHSEL10; // Select ADC channel 10
+  ADC1->CHSELR |= ADC_CHSELR_CHSEL10; // Select ADC channel 10
   ADC1->SMPR = ADC_SMPR_SMP_2 | ADC_SMPR_SMP_1 | ADC_SMPR_SMP_0; // Set sampling time to 7.5 cycles
 
   ADC1->ISR = ADC_ISR_ADRDY | ADC_ISR_EOC | ADC_ISR_EOSEQ | ADC_ISR_OVR; // Clear ADRDY flag
@@ -76,6 +76,32 @@ static void DAC_GPIO_Init(void) {
   HAL_GPIO_Init(GPIOA, &g);
 }
 
+static void DAC1_Init(void) {
+  RCC->APB1ENR |= RCC_APB1ENR_DACEN; // Enable clock for DAC
+  DAC->CR &= ~DAC_CR_EN1; // Disable DAC channel 1
+  DAC->CR &= ~DAC_CR_TSEL1; // Clear trigger selection
+  DAC->CR |= (0x7U << DAC_CR_TSEL1_Pos); // Set trigger to software trigger
+  DAC->CR |= DAC_CR_TEN1; // Enable DAC channel 1
+  DAC->CR |= DAC_CR_EN1; // Enable DAC channel 1
+}
+
+static void DAC1_Write(uint8_t sample) {
+  DAC->DHR8R1 = sample; // Write 8-bit value to DAC channel 1
+  DAC->SWTRIGR |= DAC_SWTRIGR_SWTRIG1; // Trigger the DAC conversion
+}
+
+#define THR_LED1 64u
+#define THR_LED2 128u
+#define THR_LED3 192u
+#define THR_LED4 255u
+
+static const uint8_t sine_table[32] = {
+  127, 151, 175, 197, 216, 232, 244, 251,
+  254, 251, 244, 232, 216, 197, 175, 151,
+  127, 102, 78, 56, 37, 21, 9, 2, 
+  0, 2, 9, 21, 37, 56, 78, 102
+};
+
 /**
   * @brief  The application entry point.
   * @retval int
@@ -86,10 +112,36 @@ int main(void)
   HAL_Init();
   /* Configure the system clock */
   SystemClock_Config();
+  LED_Init();
+  ADC_GPIO_Init();
+  ADC1_Init();
+  DAC_GPIO_Init();
+  DAC1_Init();
+
+  uint32_t sine_idx = 0;
 
   while (1)
   {
- 
+    uint8_t adc_value = ADC1_Read();
+
+    HAL_GPIO_WritePin(LED_PORT, ALL_LEDS, GPIO_PIN_RESET); // Turn off all LEDs
+    if (adc_value >= THR_LED1) {
+      HAL_GPIO_WritePin(LED_PORT, LED_PIN_RED, GPIO_PIN_SET);
+    }
+    if (adc_value >= THR_LED2) {
+      HAL_GPIO_WritePin(LED_PORT, LED_PIN_BLUE, GPIO_PIN_SET);
+    }
+    if (adc_value >= THR_LED3) {
+      HAL_GPIO_WritePin(LED_PORT, LED_PIN_GREEN, GPIO_PIN_SET);
+    }
+    if (adc_value >= THR_LED4) {
+      HAL_GPIO_WritePin(LED_PORT, LED_PIN_ORANGE, GPIO_PIN_SET);
+    }
+
+    DAC1_Write(sine_table[sine_idx]); // Output sine wave value to DAC
+    sine_idx = (sine_idx + 1) % 32; // Increment index and wrap around after 32 samples
+
+    HAL_Delay(1); // Delay for a short period to control the update rate
   }
   return -1;
 }
