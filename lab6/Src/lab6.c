@@ -4,11 +4,11 @@
 void SystemClock_Config(void);
 
 #define LED_PORT GPIOC
-#define LED_PIN_RED GPIO_PIN_6
-#define LED_PIN_BLUE GPIO_PIN_7
-#define LED_PIN_ORANGE GPIO_PIN_8
-#define LED_PIN_GREEN GPIO_PIN_9
-#define ALL_LEDS (LED_PIN_RED | LED_PIN_BLUE | LED_PIN_ORANGE | LED_PIN_GREEN)
+#define PIN_LED_RED GPIO_PIN_6
+#define PIN_LED_BLUE GPIO_PIN_7
+#define PIN_LED_ORANGE GPIO_PIN_8
+#define PIN_LED_GREEN GPIO_PIN_9
+#define ALL_LEDS (PIN_LED_RED | PIN_LED_BLUE | PIN_LED_ORANGE | PIN_LED_GREEN)
 
 static void LED_Init(void) {
   __HAL_RCC_GPIOC_CLK_ENABLE(); // Enable clock for GPIOC
@@ -35,6 +35,7 @@ static void ADC_GPIO_Init(void) {
 
 static void ADC1_Init(void) {
   __HAL_RCC_GPIOC_CLK_ENABLE(); // Enable clock for GPIOC
+  RCC->APB2ENR |= RCC_APB2ENR_ADCEN; // Enable clock for ADC1
 
   RCC->CR2 |= RCC_CR2_HSI14ON; // Enable HSI14 oscillator
   while (!(RCC->CR2 & RCC_CR2_HSI14RDY)); // Wait until HSI14 is ready
@@ -126,16 +127,16 @@ int main(void)
 
     HAL_GPIO_WritePin(LED_PORT, ALL_LEDS, GPIO_PIN_RESET); // Turn off all LEDs
     if (adc_value >= THR_LED1) {
-      HAL_GPIO_WritePin(LED_PORT, LED_PIN_RED, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(LED_PORT, PIN_LED_RED, GPIO_PIN_SET);
     }
     if (adc_value >= THR_LED2) {
-      HAL_GPIO_WritePin(LED_PORT, LED_PIN_BLUE, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(LED_PORT, PIN_LED_BLUE, GPIO_PIN_SET);
     }
     if (adc_value >= THR_LED3) {
-      HAL_GPIO_WritePin(LED_PORT, LED_PIN_GREEN, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(LED_PORT, PIN_LED_GREEN, GPIO_PIN_SET);
     }
     if (adc_value >= THR_LED4) {
-      HAL_GPIO_WritePin(LED_PORT, LED_PIN_ORANGE, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(LED_PORT, PIN_LED_ORANGE, GPIO_PIN_SET);
     }
 
     DAC1_Write(sine_table[sine_idx]); // Output sine wave value to DAC
