@@ -26,11 +26,8 @@ static void MX_GPIO_Init(void);
 volatile uint32_t encoder_count = 0;
 
 int main(void) {
-  HAL_Init();
-  SystemClock_Config();
-  MX_GPIO_Init();
-
   debouncer = 0;                          // Initialize global variables
+  
   HAL_Init();                             // Initialize HAL internals
   LED_init();                             // Initialize LED's
   button_init();                          // Initialize button
@@ -40,29 +37,6 @@ int main(void) {
     GPIOC->ODR ^= GPIO_ODR_9;           // Toggle green LED (heartbeat)
     encoder_count = TIM2->CNT;
     HAL_Delay(128);                      // Delay 1/8 second
-
-    // Motor test code
-    // Forward
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);   // ENABLE = 1
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);   // INPUT1 = 1
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET); // INPUT2 = 0
-    HAL_Delay(2000);
-
-    // Stop
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET); // ENABLE = 0
-    HAL_Delay(1000);
-
-    // Reverse
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);   // ENABLE = 1
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET); // INPUT1 = 0
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);   // INPUT2 = 1
-    HAL_Delay(2000);
-
-    // Stop
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET); // ENABLE = 0
-    HAL_Delay(1000);
-
-    // Motor test code
   }
 }
 
